@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Guess the Lie</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<style>
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, sans-serif;
+  background: #fff;
+  color: #111;
+  text-align: center;
+}
+
+#app {
+  max-width: 520px;
+  margin: auto;
+  padding: 40px 20px;
+}
+
+h1 {
+  font-size: 2.4rem;
+  margin-bottom: 30px;
+}
+
+.statement {
+  border: 1px solid #eee;
+  border-radius: 14px;
+  padding: 22px;
+  margin: 14px 0;
+  cursor: pointer;
+  transition: 0.15s;
+}
+
+.statement:hover {
+  transform: scale(1.02);
+}
+
+.statement.correct { background:#e9fff1; }
+.statement.wrong { background:#ffecec; }
+.statement.hidden { visibility:hidden; }
+
+#explanation {
+  margin: 20px 0;
+  font-size: 0.95rem;
+  color: #444;
+}
+
+.hud {
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin: 25px 0;
+}
+
+#dots {
+  display:flex;
+  gap:6px;
+}
+
+.dot {
+  width:10px;
+  height:10px;
+  border-radius:50%;
+  background:#ddd;
+}
+.dot.correct { background:#2ecc71; }
+.dot.wrong { background:#e74c3c; }
+
+.controls {
+  display:flex;
+  justify-content:space-between;
+  gap:10px;
+}
+
+button {
+  padding:10px 14px;
+  border-radius:10px;
+  border:1px solid #ddd;
+  background:#fff;
+  cursor:pointer;
+}
+
+button:disabled {
+  opacity:0.4;
+  cursor:default;
+}
+
+.hidden { display:none; }
+</style>
+</head>
+
+<body>
+<div id="app">
+
+<h1>Guess the Lie</h1>
+
+<div id="game">
+  <div id="progress">1 / 10</div>
+
+  <div id="q">
+    <div class="statement" data-i="0"></div>
+    <div class="statement" data-i="1"></div>
+    <div class="statement" data-i="2"></div>
+  </div>
+
+  <div id="explanation" class="hidden"></div>
+
+  <div class="hud">
+    <div id="dots"></div>
+    <div id="timer">10s</div>
+  </div>
+
+  <div class="controls">
+    <button id="skip">Skip</button>
+    <button id="freeze">Freeze</button>
+    <button id="fifty">50/50</button>
+  </div>
+</div>
+
+<div id="end" class="hidden">
+  <h2>Done.</h2>
+  <p id="scoreText"></p>
+  <button onclick="startGame()">Play again</button>
+</div>
+
+</div>
+
+<script>
+/* ========= QUESTIONS (example only – you add more) ========= */
+const QUESTIONS = [
+  {
+    statements:[
+      "The Sun is a planet.",
+      "The Sun produces its own light.",
+      "The Sun is at the center of our solar system."
+    ],
+    answer:0,
+    why:"The Sun is a star, not a planet."
+  },
+  {
+    statements:[
+      "Humans have four lungs.",
+      "The heart is a muscle.",
+      "The body has 206 bones."
+    ],
+    answer:0,
+    why:"Humans have two lungs."
+  },
+  {
+    statements:[
+      "Penguins can fly.",
+      "Penguins are birds.",
+      "Penguins are excellent swimmers."
+    ],
+    answer:0,
+    why:"Penguins are flightless birds."
+  }
+];
+
+/* ========= CONFIG ========= */
+const TOTAL = 10;
+const TIME = 10;
+
+/* ========= STATE ========= */
+let pool = [];
+let index = 0;
+let answered = 0;
+let score = 0;
+let locked = false;
+let timer = null;
+let timeLeft = TIME;
+let freezeUsed = false;
+let fiftyUsed = false;
+
+/* ========= ELEMENTS ========= */
+const statements = document.querySelectorAll(".statement");
+const explanation = document.getElementById("explanation");
+const progress = document.getElementById("progress");
+const timerEl = document.getElementById("timer");
+const dotsEl = document.getElementById("dots");
+const game = document.getElementById("game");
+const end = document.getElementById("end");
+const scoreText = document.getElementById("scoreText");
+
+/* ========= UTILS ========= */
+const shuffle = a => [...a].sort(()=>Math.random()-0.5);
+
+/* ========= DOTS ========= */
+function initDots(){
+  dotsEl.innerHTML="";
+  for(let i=0;i<TOTAL;i++){
+    dotsEl.innerHTML += `<span class="dot"></span>`;
+  }
+}
+
+function updateDots(correct){
+  const d = dotsEl.children[answered-1];
+  if(d) d.classList.add(correct ? "correct" : "wrong");
+}
+
+/* ========= GAME ========= */
+function startGame(){
+  pool = shuffle(QUESTIONS);
+  index = 0;
+  answered = 0;
+  score = 0;
+  freezeUsed = false;
+  fiftyUsed = false;
+  game.classList.remove("hidden");
+  end.classList.add("hidden");
+  initDots();
+  nextQuestion();
+}
+
+function nextQuestion(){
+  if(answered === TOTAL){
+    endGame();
+    return;
+  }
+
+  if(index >= pool.length) pool = shuffle(pool), index = 0;
+
+  locked = false;
+  explanation.classList.add("hidden");
+  timeLeft = TIME;
+  timerEl.textContent = timeLeft + "s";
+
+  const q = pool[index++];
+
+  statements.forEach((el,i)=>{
+    el.className="statement";
+    el.textContent = q.statements[i];
+    el.onclick = ()=>select(i,q);
+  });
+
+  progress.textContent = `${answered+1} / ${TOTAL}`;
+  startTimer();
+}
+
+function select(i,q){
+  if(locked) return;
+  locked = true;
+  clearInterval(timer);
+  answered++;
+
+  const correct = i === q.answer;
+  if(correct) score++;
+
+  statements.forEach((el,idx)=>{
+    if(idx === q.answer) el.classList.add("correct");
+    else if(idx === i) el.classList.add("wrong");
+  });
+
+  updateDots(correct);
+  explanation.textContent = q.why;
+  explanation.classList.remove("hidden");
+
+  setTimeout(nextQuestion,1200);
+}
+
+/* ========= TIMER ========= */
+function startTimer(){
+  clearInterval(timer);
+  timer = setInterval(()=>{
+    timeLeft--;
+    timerEl.textContent = timeLeft+"s";
+    if(timeLeft<=0){
+      clearInterval(timer);
+      locked = true;
+      answered++;
+      updateDots(false);
+      nextQuestion();
+    }
+  },1000);
+}
+
+/* ========= CONTROLS ========= */
+document.getElementById("skip").onclick = ()=>{
+  if(locked) return;
+  locked = true;
+  clearInterval(timer);
+  answered++;
+  updateDots(false);
+  nextQuestion();
+};
+
+document.getElementById("freeze").onclick = ()=>{
+  if(freezeUsed) return;
+  freezeUsed = true;
+  timeLeft += 5;
+};
+
+document.getElementById("fifty").onclick = ()=>{
+  if(fiftyUsed) return;
+  fiftyUsed = true;
+  const q = pool[index-1];
+  [0,1,2].filter(i=>i!==q.answer)
+    .slice(0,1)
+    .forEach(i=>statements[i].classList.add("hidden"));
+};
+
+/* ========= END ========= */
+function endGame(){
+  clearInterval(timer);
+  game.classList.add("hidden");
+  end.classList.remove("hidden");
+  scoreText.textContent = `Score: ${score} / ${TOTAL}`;
+}
+
+/* ========= START ========= */
+startGame();
+</script>
+</body>
+</html>
