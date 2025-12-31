@@ -1,27 +1,37 @@
-Guess the Lie
+# Guess the Lie
 
-Concept:
+A social reasoning game.
+
 You are shown three statements.
-Two are true. One is a lie.
+Two are true.
+One is a lie.
 
-Your task is to spot the lie.
+Your goal is to find the lie.
 
-How it works:
+## Why this game exists
+Guess the Lie is about intuition and reasoning, not trivia.
 
--10 questions per session
+The statements are designed to feel believable.
+The challenge comes from doubt, not difficulty.
 
--Questions are shuffled every play
+## How it works
+- Each round presents three statements
+- Exactly one statement is false
+- Select the statement you believe is the lie
+- Feedback is given immediately
 
--Increasing difficulty
+There is no timer and no penalty for guessing.
 
--Score shown at the end
+## Design principles
+- Minimal UI
+- Focus on reading and thinking
+- No distractions
+- Mobile-friendly by default
 
--“Why this is a lie” explanation after each answer
+## Notes
+- The game relies on wording more than facts
+- Replay value comes from variety, not progression
 
-Why it’s fun:
-
--Tests logic and intuition
-
--Mix of facts, myths, and surprises
-
--No repetition fatigue
+## Status
+✅ Locked  
+Core logic and structure should not be changed.
