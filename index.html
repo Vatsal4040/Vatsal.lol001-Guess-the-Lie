@@ -10,18 +10,18 @@
 
 <style>
 :root {
-  --bg:#ffffff;
-  --card:#ffffff;
-  --text:#111;
-  --muted:#666;
+   --bg:#000000;           /* Changed from #ffffff to #000000 */
+  --card:#111111;         /* Changed from #ffffff to #111111 */
+  --text:#ffffff;         /* Changed from #111 to #ffffff */
+  --muted:#aaaaaa;        /* Changed from #666 to #aaaaaa */
   --green:#2ecc71;
   --red:#e74c3c;
 }
 
 /* Weather themes */
-body.sunny { --bg:#fff9ec; }
-body.rainy { --bg:#f1f5f9; }
-body.night { --bg:#0f172a; --text:#f8fafc; --card:#111827; }
+body.sunny { --bg:#1a1a00; --card:#222200; }
+body.rainy { --bg:#0a0a1a; --card:#111122; }
+body.night { --bg:#000000; --text:#f8fafc; --card:#111111; }
 
 body {
   margin:0;
@@ -51,27 +51,28 @@ h1 {
 
 .statement {
   background:var(--card);
-  border:1px solid #eee;
+ border:1px solid #333333; /* Changed from #eee to #333333 */
   border-radius:18px;
   padding:26px;
   margin:18px 0;
   font-size:1.1rem;
   cursor:pointer;
   transition:transform 0.15s, box-shadow 0.15s;
+  
 }
 
 .statement:hover {
   transform:translateY(-2px);
-  box-shadow:0 8px 20px rgba(0,0,0,0.06);
+  box-shadow:0 8px 20px rgba(255,255,255,0.1); /* Changed from rgba(0,0,0,0.06) */
 }
 
 .statement.correct {
-  background:#e9fff1;
+   background:#1a331a; /* Changed from #e9fff1 */
   animation:pulse 0.4s;
 }
 
 .statement.wrong {
-  background:#ffecec;
+   background:#331a1a; /* Changed from #ffecec */
 }
 
 @keyframes pulse {
@@ -100,7 +101,7 @@ h1 {
   width:10px;
   height:10px;
   border-radius:50%;
-  background:#ddd;
+ background:#333333; /* Changed from #ddd */
 }
 .dot.correct { background:var(--green) }
 .dot.wrong { background:var(--red) }
@@ -114,15 +115,16 @@ h1 {
 button {
   padding:12px 18px;
   border-radius:14px;
-  border:1px solid #e5e5e5;
-  background:#fff;
+   border:1px solid #333333; /* Changed from #e5e5e5 */
+  background:#222222;       /* Changed from #fff */
   font-size:0.95rem;
   cursor:pointer;
   transition:transform 0.12s, box-shadow 0.12s;
+    color:var(--text);        /* Added to ensure white text */
 }
 button:hover:not(:disabled){
   transform:translateY(-1px);
-  box-shadow:0 6px 14px rgba(0,0,0,0.08);
+box-shadow:0 6px 14px rgba(255,255,255,0.1); /* Changed from rgba(0,0,0,0.08) */
 }
 button:disabled{opacity:0.4}
 
@@ -1390,7 +1392,7 @@ const QUESTIONS = [
     answer: 2,
     why: "Early autonomous vehicle research existed, but calling it a true self-driving car is misleading."
   }
-];;
+];
 
 /* ---------------- DAILY SEED ---------------- */
 function shuffle(arr) {
@@ -1445,7 +1447,7 @@ function startGame(){
 
 function next(){
   if(answered===TOTAL){ end(); return; }
-  if(idx>=pool.length) pool=seededShuffle(pool),idx=0;
+  if(idx>=pool.length) pool=Shuffle(pool),idx=0;// Was: seededShuffle(pool)
 
   locked=false; timeLeft=TIME;
   explainEl.classList.add("hidden");
@@ -1494,8 +1496,36 @@ function end(){
 }
 
 /* Controls */
-skip.onclick=()=>{ if(locked) return; locked=true; answered++; mark(false); next(); }
-freeze.onclick=()=>{ if(freezeUsed) return; freezeUsed=true; timeLeft+=5; }
+skip.onclick=()=>{ 
+  if(locked) return; 
+  locked=true; 
+  clearInterval(timer); // Added this line
+  answered++; 
+  mark(false); 
+  setTimeout(next, 500); // Added delay for consistency
+}
+freeze.onclick=()=>{ 
+  if(freezeUsed) return; 
+  freezeUsed=true; 
+  clearInterval(timer);  // Clear existing timer
+  timeLeft += 5;         // Add 5 seconds
+  timerEl.textContent = timeLeft + "s"; // Update display immediately
+  
+  // Restart timer with new time
+  timer = setInterval(()=>{
+    timeLeft--; 
+    timerEl.textContent=timeLeft+"s";
+    if(timeLeft<=0){ 
+      clearInterval(timer); 
+      answered++; 
+      mark(false); 
+      setTimeout(next, 500);
+    }
+  },1000);
+  
+  // Disable button after use (optional visual feedback)
+  document.getElementById("freeze").disabled = true;
+}
 fifty.onclick=()=>{ if(fiftyUsed) return; fiftyUsed=true;
   const q=pool[idx-1];
   [0,1,2].filter(i=>i!==q.answer).slice(0,1)
